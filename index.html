@@ -29,6 +29,7 @@
     <header>
       <div class="brand-title">TETRIS</div>
       <div class="header-actions">
+        <button id="btn-header-ghost" class="icon-btn" aria-label="Skuggbit" title="Skugga på/av">👻</button>
         <button id="btn-header-sound" class="icon-btn" aria-label="Ljud">🔊</button>
         <button id="btn-header-pause" class="icon-btn" aria-label="Pausa">⏸</button>
         <button id="btn-header-settings" class="icon-btn" aria-label="Inställningar">⚙️</button>
@@ -159,12 +160,21 @@
     <div id="pause-modal" class="modal-overlay hidden">
       <div class="modal-card">
         <h2 class="modal-title">PAUSAT</h2>
-        <p class="modal-subtitle">Ta en andningspaus</p>
+        <p class="modal-subtitle">Ditt spel är sparat • Ta en paus</p>
+
+        <div style="display: flex; gap: 8px; justify-content: center; margin: 14px 0;">
+          <button id="btn-pause-ghost" class="secondary-btn" style="padding: 8px 12px; font-size: 0.85rem;">👻 Skugga: PÅ</button>
+          <button id="btn-pause-sound" class="secondary-btn" style="padding: 8px 12px; font-size: 0.85rem;">🔊 Ljud: PÅ</button>
+        </div>
 
         <div class="modal-actions">
-          <button id="btn-pause-resume" class="primary-btn">Fortsätt</button>
+          <button id="btn-pause-resume" class="primary-btn">Fortsätt Spela</button>
           <button id="btn-pause-restart" class="secondary-btn">Starta Om</button>
         </div>
+
+        <p style="margin-top: 14px; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4;">
+          Du kan stänga appen helt – du fortsätter automatiskt härifrån när du öppnar igen.
+        </p>
       </div>
     </div>
 

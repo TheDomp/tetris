@@ -138,8 +138,20 @@ class TetrisGame {
 
     // Settings
     this.ghostEnabled = true;
+    try {
+      const savedGhost = localStorage.getItem('tetris_ghost');
+      if (savedGhost !== null) this.ghostEnabled = savedGhost === 'true';
+    } catch (e) {}
 
     this.resizeCanvases();
+  }
+
+  toggleGhost() {
+    this.ghostEnabled = !this.ghostEnabled;
+    try {
+      localStorage.setItem('tetris_ghost', this.ghostEnabled);
+    } catch (e) {}
+    return this.ghostEnabled;
   }
 
   createEmptyGrid() {
@@ -501,16 +513,10 @@ class TetrisGame {
         this.lockPiece();
       }
     } else {
-      // If we used up our lock resets or were kicked above lowest point, do not wipe lock timer
+      this.isLocking = false;
+      // If piece is at or below its lowest point and still has resets, clear lock timer
       if (this.lockResetMoves < this.maxLockResets && this.currentPiece.y >= this.lowestY) {
-        this.isLocking = false;
         this.lockTimer = 0;
-      } else {
-        // Still accumulate lock timer so infinite spin cannot exploit upward kicks
-        this.lockTimer += dt;
-        if (this.lockTimer >= this.lockDelay) {
-          this.lockPiece();
-        }
       }
     }
   }

@@ -2,7 +2,7 @@
 
 // Bump this (and APP_VERSION in app.js) on every release: the new name creates a
 // fresh cache and the activate step below deletes the old ones.
-const CACHE_NAME = 'tetris-pwa-v1.1.0';
+const CACHE_NAME = 'tetris-pwa-v1.2.0';
 
 const ASSETS_TO_CACHE = [
   './',

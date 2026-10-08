@@ -1,7 +1,7 @@
 // Main Application Orchestrator
 
-// Keep in sync with CACHE_NAME in sw.js (bump both on every release)
-const APP_VERSION = '1.1.0';
+// Bump both on every release to ensure fresh PWA service worker cache
+const APP_VERSION = '1.2.0';
 
 document.addEventListener('DOMContentLoaded', () => {
   const matrixCanvas = document.getElementById('matrix-canvas');
@@ -25,10 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnResumeSaved = document.getElementById('btn-resume-saved');
   const btnPauseResume = document.getElementById('btn-pause-resume');
   const btnPauseRestart = document.getElementById('btn-pause-restart');
+  const btnPauseGhost = document.getElementById('btn-pause-ghost');
+  const btnPauseSound = document.getElementById('btn-pause-sound');
   const btnGameOverRestart = document.getElementById('btn-gameover-restart');
   const btnSettingsClose = document.getElementById('btn-settings-close');
 
   // Header buttons
+  const btnGhostHeader = document.getElementById('btn-header-ghost');
   const btnPauseHeader = document.getElementById('btn-header-pause');
   const btnSoundHeader = document.getElementById('btn-header-sound');
   const btnSettingsHeader = document.getElementById('btn-header-settings');
@@ -56,10 +59,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
   controlsContainer.classList.toggle('reversed', controls.layoutReversed);
   applySwipeModeLook();
-  updateSoundHeaderIcon();
+  updateSoundUI();
+  updateGhostUI();
+  refreshResumeButton();
 
-  // Check saved game state for resume button
-  btnResumeSaved.style.display = game.hasSavedState() ? 'block' : 'none';
+  // --- Ghost & Sound UI Updaters ---
+
+  function updateGhostUI() {
+    btnGhostHeader.classList.toggle('off', !game.ghostEnabled);
+    btnGhostHeader.title = game.ghostEnabled ? 'Skuggbit: PÅ' : 'Skuggbit: AV';
+    if (btnPauseGhost) {
+      btnPauseGhost.textContent = game.ghostEnabled ? '👻 Skugga: PÅ' : '👻 Skugga: AV';
+    }
+    toggleGhost.checked = game.ghostEnabled;
+  }
+
+  function toggleGhostState() {
+    game.toggleGhost();
+    updateGhostUI();
+  }
+
+  function updateSoundUI() {
+    const sfxOn = window.retroAudio.sfxEnabled;
+    btnSoundHeader.textContent = sfxOn ? '🔊' : '🔇';
+    btnSoundHeader.classList.toggle('off', !sfxOn);
+    if (btnPauseSound) {
+      btnPauseSound.textContent = sfxOn ? '🔊 Ljud: PÅ' : '🔇 Ljud: AV';
+    }
+    toggleSfx.checked = sfxOn;
+  }
+
+  function toggleSoundState() {
+    window.retroAudio.toggleSfx();
+    window.retroAudio.init();
+    updateSoundUI();
+  }
+
+  function refreshResumeButton() {
+    if (game.hasSavedState()) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('tetris_saved_state'));
+        btnResumeSaved.textContent = `Återuppta Spel (${saved.score || 0} p • Nivå ${saved.level || 1})`;
+      } catch (e) {
+        btnResumeSaved.textContent = 'Återuppta Spel';
+      }
+      btnResumeSaved.style.display = 'block';
+      btnResumeSaved.className = 'primary-btn';
+      btnStartNew.className = 'secondary-btn';
+    } else {
+      btnResumeSaved.style.display = 'none';
+      btnStartNew.className = 'primary-btn';
+    }
+  }
 
   // --- Pause helpers (single path for buttons, keyboard, tab switch, rotation) ---
 
@@ -100,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastTime = performance.now();
   const hudCache = {};
   function setHud(el, key, value) {
-    // Only touch the DOM when a value actually changed
     if (hudCache[key] !== value) {
       hudCache[key] = value;
       el.textContent = value;
@@ -141,8 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  btnPauseHeader.addEventListener('click', togglePause);
+  btnGhostHeader.addEventListener('click', toggleGhostState);
+  if (btnPauseGhost) btnPauseGhost.addEventListener('click', toggleGhostState);
 
+  btnSoundHeader.addEventListener('click', toggleSoundState);
+  if (btnPauseSound) btnPauseSound.addEventListener('click', toggleSoundState);
+
+  btnPauseHeader.addEventListener('click', togglePause);
   btnPauseResume.addEventListener('click', resumeGame);
 
   btnPauseRestart.addEventListener('click', () => {
@@ -160,22 +215,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('gameover-score').textContent = finalScore;
     document.getElementById('gameover-highscore').textContent = highScore;
     gameOverModal.classList.remove('hidden');
+    refreshResumeButton();
   };
 
-  // Header sound toggle
-  btnSoundHeader.addEventListener('click', () => {
-    const sfxOn = window.retroAudio.toggleSfx();
-    window.retroAudio.init();
-    toggleSfx.checked = sfxOn;
-    updateSoundHeaderIcon();
-  });
-
-  function updateSoundHeaderIcon() {
-    btnSoundHeader.textContent = window.retroAudio.sfxEnabled ? '🔊' : '🔇';
-  }
-
   function applySwipeModeLook() {
-    // Buttons stay usable in swipe mode, they are just de-emphasised
     controlsContainer.style.opacity = controls.swipeMode ? '0.35' : '1';
   }
 
@@ -196,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.retroAudio.sfxEnabled = toggleSfx.checked;
     window.retroAudio.init();
     try { localStorage.setItem('tetris_sfx', toggleSfx.checked); } catch(e){}
-    updateSoundHeaderIcon();
+    updateSoundUI();
   });
 
   toggleMusic.addEventListener('change', () => {
@@ -215,6 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   toggleGhost.addEventListener('change', () => {
     game.ghostEnabled = toggleGhost.checked;
+    try { localStorage.setItem('tetris_ghost', toggleGhost.checked); } catch(e){}
+    updateGhostUI();
   });
 
   toggleSwipe.addEventListener('change', () => {

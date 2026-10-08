@@ -100,6 +100,12 @@ header {
   border-color: var(--accent-cyan);
 }
 
+.icon-btn.off {
+  opacity: 0.42;
+  border-color: rgba(255, 255, 255, 0.08);
+  filter: grayscale(1);
+}
+
 /* --- Main Playfield Area --- */
 #playfield-area {
   display: flex;
