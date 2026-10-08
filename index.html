@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <title>Klassisk Tetris</title>
+  
+  <!-- Mobile & iOS PWA Fullscreen Meta Tags -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tetris">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b0c13">
+  <meta name="color-scheme" content="dark">
+  
+  <!-- PWA Manifest & App Icons -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="app-container">
+    
+    <!-- Top Header -->
+    <header>
+      <div class="brand-title">TETRIS</div>
+      <div class="header-actions">
+        <button id="btn-header-sound" class="icon-btn" aria-label="Ljud">🔊</button>
+        <button id="btn-header-pause" class="icon-btn" aria-label="Pausa">⏸</button>
+        <button id="btn-header-settings" class="icon-btn" aria-label="Inställningar">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Main Game Playfield Area: [board][side panel] -->
+    <main id="playfield-area">
+      
+      <!-- Center/Left: Main Tetris Matrix -->
+      <section class="matrix-canvas-wrapper">
+        <canvas id="matrix-canvas" aria-label="Spelplan"></canvas>
+      </section>
+
+      <!-- Right Panel: Hold, Next and stats (one compact column leaves the board as wide as possible) -->
+      <aside class="side-panel">
+        <div class="glass-card">
+          <div class="card-label">SPARA</div>
+          <div class="preview-canvas-wrapper">
+            <canvas id="hold-canvas"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-label">NÄSTA</div>
+          <div class="preview-canvas-wrapper">
+            <canvas id="next-canvas"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-label">POÄNG</div>
+          <div id="hud-score" class="card-value highlight">0</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-label">REKORD</div>
+          <div id="hud-highscore" class="card-value">0</div>
+        </div>
+
+        <div class="stat-row">
+          <div class="glass-card">
+            <div class="card-label">NIVÅ</div>
+            <div id="hud-level" class="card-value highlight">1</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-label">RADER</div>
+            <div id="hud-lines" class="card-value">0</div>
+          </div>
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- Touch Controls Area (Thumb-Optimized for iPhone).
+         Left thumb: move + soft drop. Right thumb: rotate + hold + hard drop.
+         Hard drop is deliberately NOT next to soft drop to avoid accidental slams. -->
+    <nav id="controls-container" aria-label="Styrknappar">
+      
+      <!-- Left Cluster (Movement & Soft drop) -->
+      <div class="control-cluster">
+        <div class="cluster-row">
+          <button id="btn-left" class="ctrl-btn" aria-label="Vänster">
+            <span>◀</span>
+          </button>
+          <button id="btn-right" class="ctrl-btn" aria-label="Höger">
+            <span>▶</span>
+          </button>
+        </div>
+        <div class="cluster-row">
+          <button id="btn-soft-drop" class="ctrl-btn" aria-label="Mjukt fall">
+            <span>▼</span>
+            <span class="btn-sub">Fall</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Cluster (Rotations, Hold & Hard drop) -->
+      <div class="control-cluster">
+        <div class="cluster-row">
+          <button id="btn-rotate-ccw" class="ctrl-btn" aria-label="Rotera moturs">
+            <span>↺</span>
+          </button>
+          <button id="btn-rotate-cw" class="ctrl-btn btn-rotate-primary" aria-label="Rotera medurs">
+            <span>↻</span>
+            <span class="btn-sub">Rotera</span>
+          </button>
+        </div>
+        <div class="cluster-row">
+          <button id="btn-hold" class="ctrl-btn btn-hold" aria-label="Spara bit">
+            <span>⇋</span>
+            <span class="btn-sub">Spara</span>
+          </button>
+          <button id="btn-hard-drop" class="ctrl-btn btn-hard-drop" aria-label="Hårt fall">
+            <span>⤓</span>
+            <span class="btn-sub">Slam</span>
+          </button>
+        </div>
+      </div>
+
+    </nav>
+
+    <!-- Modal: Start Game -->
+    <div id="start-modal" class="modal-overlay">
+      <div class="modal-card">
+        <h1 class="modal-title">TETRIS</h1>
+        <p class="modal-subtitle">Klassisk spelglädje • 100% Offline</p>
+
+        <div class="modal-actions">
+          <button id="btn-start-new" class="primary-btn">Starta Nytt Spel</button>
+          <button id="btn-resume-saved" class="secondary-btn" style="display: none;">Återuppta Spel</button>
+        </div>
+
+        <!-- Only shown on iPhone/iPad when running in Safari (not yet installed) -->
+        <div id="ios-install-banner" hidden>
+          <svg class="share-icon-badge" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/>
+          </svg>
+          <div class="banner-text">
+            <strong>Spela i fullskärm och offline:</strong><br>
+            Tryck på Dela-knappen i Safari och välj <em>"Lägg till på hemskärmen"</em>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Pause -->
+    <div id="pause-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h2 class="modal-title">PAUSAT</h2>
+        <p class="modal-subtitle">Ta en andningspaus</p>
+
+        <div class="modal-actions">
+          <button id="btn-pause-resume" class="primary-btn">Fortsätt</button>
+          <button id="btn-pause-restart" class="secondary-btn">Starta Om</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Game Over -->
+    <div id="gameover-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h2 class="modal-title" style="background: none; -webkit-text-fill-color: var(--accent-red); color: var(--accent-red);">GAME OVER</h2>
+        <div style="margin: 16px 0; font-size: 1.1rem;">
+          Poäng: <strong id="gameover-score" style="color: var(--accent-cyan);">0</strong><br>
+          Rekord: <strong id="gameover-highscore" style="color: var(--accent-yellow);">0</strong>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-gameover-restart" class="primary-btn">Spela Igen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Settings -->
+    <div id="settings-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h2 class="modal-title">INSTÄLLNINGAR</h2>
+
+        <div style="margin: 14px 0;">
+          <div class="setting-row">
+            <span class="setting-label">Ljudeffekter (SFX)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-sfx" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">8-bit Bakgrundsmusik</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-music">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Skuggbit (Ghost)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-ghost" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Svepgester på skärmen</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-swipe">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Vänsterhänt layout</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-reversed">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-settings-close" class="primary-btn">Stäng</button>
+        </div>
+        <p class="version-label">Version <span id="app-version"></span></p>
+      </div>
+    </div>
+
+    <!-- Landscape notice (iOS ignores manifest orientation lock) -->
+    <div id="rotate-notice" aria-hidden="true">
+      <div class="rotate-icon">📱</div>
+      <p>Vrid telefonen till stående läge</p>
+    </div>
+
+  </div>
+
+  <!-- Game Scripts -->
+  <script src="audio.js"></script>
+  <script src="tetris.js"></script>
+  <script src="controls.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
